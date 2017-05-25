@@ -1,0 +1,16 @@
+{
+  "name": "fetch-flickr",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "coffee-script": "^1.12.6",
+    "download": "^6.2.0",
+    "flickr-sdk": "^2.1.0"
+  }
+}
