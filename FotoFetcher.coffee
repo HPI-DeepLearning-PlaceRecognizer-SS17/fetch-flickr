@@ -10,18 +10,44 @@ class FotoFetcher
 		@photoSize = 'b'
 		return
 
+	_searchPhotos: (searchTerm, page) =>
+		searchOptions = {
+			text: searchTerm
+			sort: 'relevance'
+			media: 'photos'
+			per_page: 10
+			parse_tags: 1
+			content_type: 7
+			lang: 'de-DE'
+			extras: 'description, license, date_upload, date_taken, owner_name, icon_server, original_format, last_update, geo, tags, machine_tags, o_dims, views, media, path_alias, url_sq, url_t, url_s, url_q, url_m, url_n, url_z, url_c, url_l, url_o'
+		}
+
+		if page?
+			searchOptions.page = page
+
+		promise = new Promise (resolve, reject) =>
+			debugger
+			@flickrApi.photos.search(
+				searchOptions,
+				(error, result) ->
+					if error
+						return reject error
+					resolve result.photos
+			)
+
+		return promise
+
 	searchFor: (searchTerm) =>
-		debugger
-		promise = @flickrApi.request().media().search(searchTerm).get({sort: 'relevance'})
-		promise = promise.then (response) =>
+		promise = @_searchPhotos searchTerm
+
+		promise = promise.then (photos) =>
 			searchResult = {
 				searchTerm: searchTerm
-				numberOfPages: response.body.photos.pages
-				photosPerPage: response.body.photos.perpage
+				numberOfPages: photos.pages
+				photosPerPage: photos.perpage
 			}
 
-			totalPhotos = searchResult.numberOfPages * searchResult.photosPerPage
-			console.log "Search for '#{searchTerm}' resulted in #{totalPhotos} Photos"
+			console.log "Search for '#{searchTerm}' resulted in #{photos.total} Photos"
 			return searchResult
 
 		return promise
@@ -31,17 +57,26 @@ class FotoFetcher
 
 		metadataPromise = @_fetchPhotosMetadata searchResult, page
 		downloadPromise = metadataPromise.then (photos) =>
-			debugger
 			notDownloadedPhotos = @_storeMetadata photos
 			return @_downloadPhotos notDownloadedPhotos
+		downloadPromise = downloadPromise.then ->
+			console.log "Downloaded page #{page}"
+			return
 		return downloadPromise
 
 	_fetchPhotosMetadata: (searchResult, page) =>
 		console.log "Fetching page metadata"
-		promise = @flickrApi.request().media().search(searchResult.searchTerm).get({page: page})
-		promise = promise.then (response) =>
+		promise = @_searchPhotos searchResult.searchTerm, page
+		promise = promise.then (photos) =>
 			console.log "Page metadata fetched"
-			return response.body.photos.photo
+			photos = photos.photo
+
+			for photo in photos
+				photo._fetchFlickr = {
+					searchResult: searchResult
+					page: page
+				}
+			return photos
 		return promise
 
 	_storeMetadata: (photos) =>
@@ -57,12 +92,17 @@ class FotoFetcher
 
 			newlyStored.push photo
 			unless fs.existsSync(jsonFilename)
-				fs.writeFileSync jsonFilename, JSON.stringify photo
+				fs.writeFileSync jsonFilename, JSON.stringify photo, true, 2
 
 		return newlyStored
 
 	_downloadPhotos: (photos) =>
-		promises = photos.map @_downloadPhoto
+		promises = photos.map (photo) =>
+			return new Promise (resolve) =>
+				setTimeout(
+					=> resolve @_downloadPhoto(photo)
+					Math.round Math.random() * 5000
+				)
 		return Promise.all promises
 
 	_downloadPhoto: (photo) =>

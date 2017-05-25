@@ -11,6 +11,7 @@
   "dependencies": {
     "coffee-script": "^1.12.6",
     "download": "^6.2.0",
-    "flickr-sdk": "^2.1.0"
+    "flickr-sdk": "^2.1.0",
+    "flickrapi": "^0.6.0"
   }
 }
