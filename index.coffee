@@ -18,14 +18,15 @@ unless args.flickrApiKey? and args.flickrApiSecret? and args.search?
 	printUsage()
 	return
 
-args.path ?= './dl/'
+args.dest ?= './dl/'
 args.resultsPerPage ?= 10
 args.maxPages ?= 1
 
-downloadPath = path.resolve args.path
+downloadPath = path.resolve args.dest
 unless fs.existsSync(downloadPath)
 	console.error 'ERROR: download directory does not exist'
 	return
+console.log "Will download to '#{downloadPath}'"
 
 searchOptions = {
 	resultsPerPage: Math.max 1, Math.min 100, Number.parseInt args.resultsPerPage
@@ -53,7 +54,7 @@ Flickr.tokenOnly flickrOptions, (error, flickr) ->
 
 	fetcher = new FotoFetcher(flickr, downloadPath, searchOptions)
 
-	searchPromise = fetcher.searchFor 'rotes rathaus'
+	searchPromise = fetcher.searchFor args.search
 	searchPromise = searchPromise.then (searchResult) =>
 		downloadPage = (page) ->
 			return fetcher.downloadPage searchResult, page

@@ -53,7 +53,7 @@ class FotoFetcher
 		return promise
 
 	downloadPage: (searchResult, page) =>
-		console.log "Downloading page #{page} of #{searchResult.numberOfPages}"
+		console.log "Downloading page #{page}"
 
 		metadataPromise = @_fetchPhotosMetadata searchResult, page
 		downloadPromise = metadataPromise.then (photos) =>
