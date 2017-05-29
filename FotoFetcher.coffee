@@ -5,9 +5,10 @@ download = require 'download'
 
 class FotoFetcher
 
-	constructor: (@flickrApi, @storagePath = 'dl') ->
+	constructor: (@flickrApi, @storagePath, searchOptions) ->
 		# https://www.flickr.com/services/api/misc.urls.html
-		@photoSize = 'b'
+		@photoSizes = ['h', 'b', 'c', 'z']
+		@resultsPerPage = searchOptions.resultsPerPage
 		return
 
 	_searchPhotos: (searchTerm, page) =>
@@ -15,18 +16,17 @@ class FotoFetcher
 			text: searchTerm
 			sort: 'relevance'
 			media: 'photos'
-			per_page: 10
+			per_page: @resultsPerPage
 			parse_tags: 1
 			content_type: 7
 			lang: 'de-DE'
-			extras: 'description, license, date_upload, date_taken, owner_name, icon_server, original_format, last_update, geo, tags, machine_tags, o_dims, views, media, path_alias, url_sq, url_t, url_s, url_q, url_m, url_n, url_z, url_c, url_l, url_o'
+			extras: 'description, license, date_upload, date_taken, owner_name, icon_server, original_format, last_update, geo, tags, machine_tags, o_dims, views, media, path_alias, url_k, url_h, url_b, url_sq, url_t, url_s, url_q, url_m, url_n, url_z, url_c, url_l, url_o'
 		}
 
 		if page?
 			searchOptions.page = page
 
 		promise = new Promise (resolve, reject) =>
-			debugger
 			@flickrApi.photos.search(
 				searchOptions,
 				(error, result) ->
@@ -59,9 +59,9 @@ class FotoFetcher
 		downloadPromise = metadataPromise.then (photos) =>
 			notDownloadedPhotos = @_storeMetadata photos
 			return @_downloadPhotos notDownloadedPhotos
-		downloadPromise = downloadPromise.then ->
+		downloadPromise = downloadPromise.then (numberOfDownloadedPhotos)->
 			console.log "Downloaded page #{page}"
-			return
+			return numberOfDownloadedPhotos
 		return downloadPromise
 
 	_fetchPhotosMetadata: (searchResult, page) =>
@@ -84,7 +84,14 @@ class FotoFetcher
 
 		for photo in photos
 			jsonFilename = @_storageFileNameForPhoto(photo) + '.json'
-			fotoFilename = @_storageFileNameForPhoto(photo) + '.jpg'
+			photoQuality = @_choosePhotoQuality photo
+			
+			# Skip file if no desired quality is found
+			if not photoQuality?
+				console.log "Skipping download of photo #{photo.id} (not available in desired quality)"
+				continue
+
+			fotoFilename = @_storageFileNameForPhoto(photo) + '_' + photoQuality + '.jpg'
 
 			if fs.existsSync(jsonFilename) and fs.existsSync(fotoFilename)
 				console.log "Skipping download of photo '#{photo.id}' (already exists)"
@@ -103,16 +110,25 @@ class FotoFetcher
 					=> resolve @_downloadPhoto(photo)
 					Math.round Math.random() * 5000
 				)
-		return Promise.all promises
+		wrapPromise = Promise.all promises
+		return wrapPromise.then -> return photos.length
 
 	_downloadPhoto: (photo) =>
-		url = "https://farm#{photo.farm}.staticflickr.com/#{photo.server}/#{photo.id}_#{photo.secret}_#{@photoSize}.jpg"
-		return download(url, @storagePath, { filename: photo.id + '.jpg' })
+		quality = @_choosePhotoQuality photo
+		url = photo["url_#{quality}"]
+
+		return download(url, @storagePath, { filename: photo.id + '_' + quality + '.jpg' })
 		.then ->
-			console.log "Downloaded photo '#{photo.id}'"
+			console.log "Downloaded photo '#{photo.id}' with quality '#{quality}'"
 		.catch (error) ->
 			console.error "ERROR: Unable to download photo '#{photo.id}'"
 			console.error error
+
+	_choosePhotoQuality: (photo) =>
+		for identifier in @photoSizes
+			if photo["url_#{identifier}"]?
+				return identifier
+		return null
 
 	_storageFileNameForPhoto: (photo) =>
 		return path.normalize path.join @storagePath, photo.id
