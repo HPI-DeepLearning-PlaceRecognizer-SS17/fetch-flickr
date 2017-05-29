@@ -74,6 +74,11 @@ Flickr.tokenOnly flickrOptions, (error, flickr) ->
 
 		return downloadPage 1
 
-	searchPromise.catch (error) =>
+	searchPromise = searchPromise.then ->
+		console.log 'All pages downloaded'
+		process.exit(0)
+
+	searchPromise = searchPromise.catch (error) =>
+		console.error "ERROR during download:"
 		console.error error
-		throw error
+		process.exit(1)
