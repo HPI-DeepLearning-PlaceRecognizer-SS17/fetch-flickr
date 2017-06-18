@@ -24,3 +24,5 @@ Usage:
  --resultsPerPage <int>        (default 10)    - images per page/query
  --maxPages <int>              (default 1)     - maximum number of pages to download
 ```
+
+A typical call could be `node index.js --flickrApiKey ... --flickrApiSecret ... --search "german parliament" --dest "./fetched-photos/reichstag" --maxPages 300`
