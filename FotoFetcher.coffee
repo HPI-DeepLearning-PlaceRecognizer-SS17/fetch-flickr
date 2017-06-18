@@ -91,15 +91,22 @@ class FotoFetcher
 				console.log "Skipping download of photo #{photo.id} (not available in desired quality)"
 				continue
 
-			fotoFilename = @_storageFileNameForPhoto(photo) + '_' + photoQuality + '.jpg'
+			fotoFilename = @_storageFileNameForPhoto(photo) + '.jpg'
 
 			if fs.existsSync(jsonFilename) and fs.existsSync(fotoFilename)
 				console.log "Skipping download of photo '#{photo.id}' (already exists)"
 				continue
 
 			newlyStored.push photo
+
+			# Just store the ID and initial status, discad whole metadata
+			storedPhoto = {
+				id: photo.id
+				annotationStatus: 'none'
+			}
+
 			unless fs.existsSync(jsonFilename)
-				fs.writeFileSync jsonFilename, JSON.stringify photo, true, 2
+				fs.writeFileSync jsonFilename, JSON.stringify storedPhoto, true, 2
 
 		return newlyStored
 
@@ -117,7 +124,7 @@ class FotoFetcher
 		quality = @_choosePhotoQuality photo
 		url = photo["url_#{quality}"]
 
-		return download(url, @storagePath, { filename: photo.id + '_' + quality + '.jpg' })
+		return download(url, @storagePath, { filename: photo.id + '.jpg' })
 		.then ->
 			console.log "Downloaded photo '#{photo.id}' with quality '#{quality}'"
 		.catch (error) ->
