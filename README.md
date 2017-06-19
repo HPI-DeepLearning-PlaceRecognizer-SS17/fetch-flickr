@@ -26,3 +26,8 @@ Usage:
 ```
 
 A typical call could be `node index.js --flickrApiKey ... --flickrApiSecret ... --search "german parliament" --dest "./fetched-photos/reichstag" --maxPages 300`
+
+## Dockerfile
+
+Use `buildDockerImage.sh` to build the app as the `fetch-flickr` docker image.
+You can then use `docker run --rm -v /hostPathToDownloadImagesTo:/dl fetch-flickr --dest /dl --flickrApiKey ... --flickrApiSecret ... --search "german parliament"`
