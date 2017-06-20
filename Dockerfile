@@ -6,4 +6,4 @@ WORKDIR /app
 
 RUN npm install
 
-ENTRYPOINT ["node" "index.js"]
+ENTRYPOINT ["node", "index.js"]
